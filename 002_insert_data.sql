@@ -45,6 +45,7 @@ INSERT INTO insurance (State, CarPremiumsDollar, InsuranceLossesPerDriver) VALUE
   ("Texas", 1004.75, 156.83),
   ("Utah", 809.38, 109.48),
   ("Vermont", 716.2, 109.61),
+  ("Virginia", 768.95, 153.72),
   ("Washington", 890.03, 111.62),
   ("West Virginia", 992.61, 152.56),
   ("Wisconsin", 670.31, 106.62),
