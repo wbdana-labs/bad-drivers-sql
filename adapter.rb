@@ -2,6 +2,98 @@ require 'sqlite3'
 
 class Collision
 
+  @@all = []
+
+  def initialize(state, collisionbillionmiles, percentagespeeding, percentagealcohol, percentagenotdistracted, percentagenoprior, id=nil)
+    @state = state
+    @collisionbillionmiles = collisionbillionmiles
+    @percentagespeeding = percentagespeeding
+    @percentagealcohol = percentagealcohol
+    @percentagenotdistracted = percentagenotdistracted
+    @percentagenoprior = percentagenoprior
+    @id = id
+  end
+
+  def self.create_table
+    sql = <<-SQL
+    CREATE TABLE IF NOT EXISTS collisions
+    (
+      id INTEGER PRIMARY KEY,
+      state TEXT,
+      collisionbillionmiles REAL,
+      percentagespeeding REAL,
+      percentagealcohol REAL,
+      percentagenotdistracted REAL,
+      percentagenoprior REAL
+    );
+    SQL
+    DB[:conn].execute(sql)
+
+    def self.drop_table
+      sql = <<-SQL
+      DROP TABLE collisions;
+      SQL
+      DB[:conn].execute(sql)
+    end
+
+    def update
+      sql = "UPDATE collisions SET state = ?, collisionsbillionmiles = ?, percentagespeeding = ?, percentagealcohol = ?, percentagenotdistracted = ?, percentagenoprior = ? WHERE id = ?"
+      DB[:conn].execute(sql, self.state, self.collisionsbillionmiles, self.percentagespeeding, self.percentagealcohol, self.percentagenotdistracted, self.percentagenoprior)
+    end
+
+    def save
+      if self.id
+        self.update
+      else
+        sql = <<-SQL
+        INSERT INTO collisions (state, collisionbillionmiles, percentagespeeding, percentagealcohol, percentagenotdistracted, percentagenoprior) VALUES (?, ?, ?, ?, ?, ?)
+        SQL
+        DB[:conn].execute(sql, self.state, self.collisionsbillionmiles, self.percentagespeeding, self.percentagealcohol, self.percentagenotdistracted, self.percentagenoprior)
+        @id = DB[:conn].execute("SELECT last_insert_rowid() FROM collisions")[0][0]
+      end
+    end
+
+    def self.create(collisionsbillionmiles, percentagespeeding, percentagealcohol, percentagenotdistracted, percentagenoprior)
+      collision_data = Collision.new(collisionsbillionmiles, percentagespeeding, percentagealcohol, percentagenotdistracted, percentagenoprior)
+      collision_data.save
+    end
+
+    def self.new_from_db(row)
+      new_collision_data = self.new(row[1], row[2], row[3], row[4], row[5], row[6])
+      new_collision_data.state = row[1]
+      new_collision_data.collisionsbillionmiles = row[1]
+      new_collision_data.percpercentagespeeding = row[2]
+      new_collision_data.percpercentagealcohol = row[3]
+      new_collision_data.percpercentagenotdistracted = row[4]
+      new_collision_data.percentagenoprior = row[5]
+      new_collision_data
+    end
+
+    def self.find_by_state(state)
+      sql = <<-SQL
+      SELECT *
+      FROM collisions
+      WHERE state = ?
+      LIMIT 1
+      SQL
+      DB[:conn].execute(sql, state).map do |row|
+        self.new_from_db(row)
+      end.first
+    end
+
+
+
+
+### BELOW IS OLD
+
+  def self.all
+    @@all
+  end
+
+  def db
+    @db ||= SQLite3::Database.new("bad_drivers.db")
+  end
+
   def self.columns
     {
       state: "TEXT",
@@ -37,43 +129,27 @@ class Collision
     end
   end
 
-  def attribute_values_for_sql
-    result = attribute_values.map do |attribute_val|
-      if attribute_val == true
-        1
-      elsif attribute_val == false
-        0
-      else
-        attribute_val
-      end
-    end
-    result
-  end
-
   def question_marks
     count = self.class.column_names.keys.size
     ["?"]*count.join(", ")
   end
 
-  
 
-
-
-
-  @@all = []
-
-  def initialize(name)
-    @name = name
-    @@all << self
+  def self.new_from_row(row)
+    obj = self.new
+    obj.id = row[0]
+    # [1, "twix", 80, 0]
+    self.column_names.map.with_index do |column_name, idx|
+      obj.send("#{column_name}=",  row[idx + 1])
+    end
+    obj
   end
 
-  def self.all
-    @@all
+  def update
+    query = "UPDATE collisions SET name = #{self.name}, calories = #{self.calories}, has_milk = #{self.has_milk} where id = #{self.id}"
+    self.class.db.execute(query)
   end
 
-  def db
-    @db ||= SQLite3::Database.new("bad_drivers.db")
-  end
 
   def create_tables
     sql = <<-SQL
